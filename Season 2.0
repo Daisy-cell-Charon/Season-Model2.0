@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Shenzhen Observatory · Seasons Model | Interactive Earth Orbit</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background: radial-gradient(circle at 30% 20%, #020617, #000000);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'Poppins', system-ui, -apple-system, 'Arial', sans-serif;
+            padding: 24px 16px;
+        }
+
+        .planetarium-card {
+            max-width: 1100px;
+            width: 100%;
+            background: rgba(8, 18, 38, 0.7);
+            backdrop-filter: blur(4px);
+            border-radius: 72px;
+            padding: 24px 28px 36px;
+            box-shadow: 0 30px 45px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(100, 150, 220, 0.4);
+        }
+
+        h1 {
+            font-size: 2rem;
+            letter-spacing: -0.3px;
+            background: linear-gradient(135deg, #FFF7CF, #B8DEFF);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        .badge {
+            font-size: 0.75rem;
+            background: #0f2a3b;
+            padding: 5px 14px;
+            border-radius: 40px;
+            color: #ffdd99;
+            font-weight: normal;
+        }
+
+        .sub {
+            color: #bdd4ff;
+            font-size: 1rem;
+            border-left: 4px solid #ffbc6e;
+            padding-left: 18px;
+            margin-bottom: 24px;
+            font-weight: 400;
+        }
+
+        .model-stage {
+            position: relative;
+            width: 100%;
+            max-width: 680px;
+            height: auto;
+            aspect-ratio: 1 / 1;
+            margin: 0 auto 18px;
+            background: radial-gradient(ellipse at 30% 40%, rgba(0, 10, 30, 0.6), #010514);
+            border-radius: 50%;
+            box-shadow: 0 0 0 3px rgba(66, 120, 180, 0.3), inset 0 0 55px rgba(0, 0, 0, 0.7);
+        }
+
+        .model-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .sun-core {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 85px;
+            height: 85px;
+            background: radial-gradient(circle, #ffdd77, #ff9c1a);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 55px 18px #ffaa33, 0 0 120px rgba(255, 100, 0, 0.5);
+            z-index: 5;
+        }
+
+        .orbit-ring {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 86%;
+            height: 86%;
+            border: 2px dashed rgba(100, 160, 220, 0.8);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        .earth-drag {
+            position: absolute;
+            width: 48px;
+            height: 48px;
+            cursor: grab;
+            z-index: 30;
+            left: 50%;
+            top: 22px;
+            transform: translateX(-50%);
+        }
+
+        .earth-drag:active {
+            cursor: grabbing;
+        }
+
+        .earth-sphere {
+            width: 48px;
+            height: 48px;
+            background: radial-gradient(circle at 35% 35%, #5bb4ff, #1f6390);
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.6);
+            border: 1px solid #c6e2ff;
+            position: relative;
+        }
+
+        .axis-tilt {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            width: 2px;
+            height: 72px;
+            background: linear-gradient(180deg, rgba(255,255,200,0.9), rgba(200,230,255,0.6));
+            transform: translateX(-50%) rotate(23.5deg);
+            transform-origin: top;
+            pointer-events: none;
+            border-radius: 2px;
+        }
+
+        .axis-tilt::before {
+            content: "⤴ 23.5°";
+            position: absolute;
+            font-size: 9px;
+            background: rgba(0,0,0,0.6);
+            color: #ffecb3;
+            white-space: nowrap;
+            top: -18px;
+            left: 8px;
+            padding: 1px 5px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .season-tag {
+            position: absolute;
+            font-size: 1.1rem;
+            font-weight: bold;
+            text-shadow: 0 2px 8px black;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(5px);
+            padding: 5px 14px;
+            border-radius: 60px;
+            border: 1px solid rgba(255,215,0,0.3);
+            pointer-events: none;
+            z-index: 10;
+            font-family: monospace;
+            letter-spacing: 0.5px;
+        }
+
+        .spring-tag { top: 8px; left: 50%; transform: translateX(-50%); color: #a5ff8e; border-color: #a5ff8e; }
+        .summer-tag { right: -10px; top: 50%; transform: translateY(-50%); color: #ffb57c; border-color: #ffb57c; }
+        .autumn-tag { bottom: 8px; left: 50%; transform: translateX(-50%); color: #ffdb8e; border-color: #ffdb8e; }
+        .winter-tag { left: -10px; top: 50%; transform: translateY(-50%); color: #9bd7ff; border-color: #9bd7ff; }
+
+        .science-panel {
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(8px);
+            border-radius: 44px;
+            padding: 20px 25px;
+            margin-top: 18px;
+            border: 1px solid rgba(72, 160, 255, 0.3);
+            text-align: left;
+        }
+
+        .science-panel h3 {
+            color: #ffdd99;
+            margin: 14px 0 6px 0;
+            font-weight: 600;
+            font-size: 1.2rem;
+            border-left: 3px solid #ffae70;
+            padding-left: 12px;
+        }
+
+        .science-panel p, .science-panel li {
+            font-size: 0.95rem;
+            line-height: 1.45;
+            color: #eef4ff;
+        }
+
+        .model-limits {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            margin: 12px 0 8px;
+        }
+
+        .benefit, .limitation {
+            flex: 1;
+            background: rgba(30, 45, 70, 0.6);
+            border-radius: 28px;
+            padding: 12px 18px;
+        }
+
+        .benefit h4 { color: #b5ffa2; }
+        .limitation h4 { color: #ffae94; }
+
+        .work-cited {
+            font-size: 0.72rem;
+            border-top: 1px solid #446688;
+            margin-top: 18px;
+            padding-top: 12px;
+            color: #bbd4ff;
+        }
+
+        .drag-instruction {
+            display: inline-block;
+            background: #0a1f2e;
+            border-radius: 40px;
+            padding: 6px 18px;
+            font-size: 0.8rem;
+            margin-top: 8px;
+            color: #ffd966;
+        }
+
+        footer {
+            font-size: 0.7rem;
+            text-align: center;
+            margin-top: 20px;
+            opacity: 0.7;
+            color: #9bb5d4;
+        }
+
+        @media (max-width: 620px) {
+            .season-tag { font-size: 0.8rem; padding: 3px 8px; }
+            .earth-drag { width: 38px; height: 38px; }
+            .earth-sphere { width: 38px; height: 38px; }
+            .axis-tilt { height: 58px; top: -8px; }
+            .sun-core { width: 65px; height: 65px; }
+        }
+    </style>
+</head>
+<body>
+<div class="planetarium-card">
+    <h1>
+        🌍 Seasons · Earth's Tilt & Orbit
+        <span class="badge">Shenzhen Observatory | Interactive Model</span>
+    </h1>
+    <div class="sub">✦ Grade 1–6 Astronomy Workshop ✦ Drag the Earth around the Sun to change seasons</div>
+
+    <div class="model-stage">
+        <div class="model-container" id="orbitContainer">
+            <div class="sun-core"></div>
+            <div class="orbit-ring"></div>
+
+            <div class="season-tag spring-tag">🌸 Vernal Equinox</div>
+            <div class="season-tag summer-tag">☀️ Summer Solstice</div>
+            <div class="season-tag autumn-tag">🍂 Autumnal Equinox</div>
+            <div class="season-tag winter-tag">❄️ Winter Solstice</div>
+
+            <div class="earth-drag" id="draggableEarth">
+                <div class="earth-sphere">
+                    <div class="axis-tilt"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="drag-instruction">👉 Drag the Earth along its orbit | Fixed axial tilt 23.5° creates seasons 👈</div>
+
+    <div class="science-panel">
+        <h3>📐 Scientific Model: Why do seasons happen?</h3>
+        <p>✅ Earth orbits the Sun with its axis tilted <strong>23.5°</strong>, always pointing toward Polaris (North Star). When the Northern Hemisphere tilts <strong>toward</strong> the Sun, it receives more direct sunlight → longer days → <strong style="color:#ffaa66;">Summer</strong>. When it tilts <strong>away</strong>, sunlight is less direct → shorter days → <strong style="color:#88ccff;">Winter</strong>. The Southern Hemisphere experiences opposite seasons.<br>
+        This model clearly shows <strong>fixed axial tilt</strong> (visualized by the white line) and how orbital position determines seasons. Drag the Earth to see spring, summer, autumn, and winter labels change context — perfect for young learners.</p>
+
+        <h3>🧩 Model Evaluation (Benefits & Limitations)</h3>
+        <div class="model-limits">
+            <div class="benefit">
+                <h4>✨ Strengths</h4>
+                <ul style="margin-left: 18px;">
+                    <li>Visual axial tilt (23.5° line)</li>
+                    <li>Drag-to-move interaction mimics orbit</li>
+                    <li>Clear season labels for each orbital zone</li>
+                    <li>Hands-on learning for Year 1–6 students</li>
+                </ul>
+            </div>
+            <div class="limitation">
+                <h4>⚠️ Limitations & Improvements</h4>
+                <ul style="margin-left: 18px;">
+                    <li>Not to scale (distance & size distorted)</li>
+                    <li>Does not show day/night length change</li>
+                    <li>No direct sunlight angle meter</li>
+                    <li>🔧 Add light intensity slider or angle indicator</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>🌏 Science Behind the Seasons</h3>
+        <p>Earth revolves around the Sun in an elliptical orbit. Because of the 23.5° axial tilt, the subsolar point moves between the Tropic of Cancer and the Tropic of Capricorn over a year. At the vernal equinox, day and night are equal worldwide. At the summer solstice, the Northern Hemisphere receives maximum sunlight. The model demonstrates how the <strong>position along the orbit</strong> determines which hemisphere is tilted toward the Sun. Without axial tilt, there would be no seasons (NASA, 2024).</p>
+
+        <h3>📖 Why do scientists use models?</h3>
+        <p>Models make enormous, slow, or invisible systems understandable. They simplify complex ideas into hands-on experiences. For young students, a dragable Earth orbiting a model Sun makes the abstract concept of “tilt + orbit” tangible and memorable (National Geographic Education, 2023; UCAR, 2022).</p>
+
+        <div class="work-cited">
+            📚 Work Cited <br>
+            • NASA Space Place. (2024). <em>What Causes the Seasons?</em> <br>
+            • National Geographic Society. (2023). <em>Season - Education Resource</em>.<br>
+            • UCAR Center for Science Education. (2022). <em>Why Do We Have Seasons?</em><br>
+            • Shenzhen Observatory — Educational Outreach Guide.
+        </div>
+    </div>
+    <footer>🔭 Shenzhen Observatory · Drag the Earth to experience how astronomers use models to explain our world</footer>
+</div>
+
+<script>
+    (function(){
+        const earth = document.getElementById('draggableEarth');
+        const container = document.getElementById('orbitContainer');
+        let dragging = false;
+        let centerX = 0, centerY = 0, radius = 0;
+
+        function updateGeometry() {
+            if (!container) return;
+            const rect = container.getBoundingClientRect();
+            centerX = rect.width / 2;
+            centerY = rect.height / 2;
+            const minDim = Math.min(rect.width, rect.height);
+            radius = minDim * 0.38;
+            const currentLeft = parseFloat(earth.style.left);
+            const currentTop = parseFloat(earth.style.top);
+            if (isNaN(currentLeft) || isNaN(currentTop) || currentLeft === 0) {
+                const initAngle = -Math.PI / 2;
+                const initX = centerX + radius * Math.cos(initAngle);
+                const initY = centerY + radius * Math.sin(initAngle);
+                earth.style.left = initX + 'px';
+                earth.style.top = initY + 'px';
+            } else {
+                let dx = currentLeft - centerX;
+                let dy = currentTop - centerY;
+                let currentAngle = Math.atan2(dy, dx);
+                let newX = centerX + radius * Math.cos(currentAngle);
+                let newY = centerY + radius * Math.sin(currentAngle);
+                earth.style.left = newX + 'px';
+                earth.style.top = newY + 'px';
+            }
+        }
+
+        window.addEventListener('resize', () => {
+            setTimeout(updateGeometry, 80);
+        });
+
+        function onMouseMove(e) {
+            if (!dragging) return;
+            const rect = container.getBoundingClientRect();
+            let mouseX = e.clientX - rect.left;
+            let mouseY = e.clientY - rect.top;
+            let dx = mouseX - centerX;
+            let dy = mouseY - centerY;
+            let angle = Math.atan2(dy, dx);
+            let newLeft = centerX + radius * Math.cos(angle);
+            let newTop = centerY + radius * Math.sin(angle);
+            earth.style.left = newLeft + 'px';
+            earth.style.top = newTop + 'px';
+            updateSeasonHint(angle);
+        }
+
+        function updateSeasonHint(angle) {
+            let deg = (angle * 180 / Math.PI + 360) % 360;
+            let msg = "";
+            if ((deg >= 315 && deg <= 360) || (deg >= 0 && deg < 45)) msg = "🌱 Near Vernal Equinox (Spring)";
+            else if (deg >= 45 && deg < 135) msg = "☀️ Summer in Northern Hemisphere";
+            else if (deg >= 135 && deg < 225) msg = "🍂 Autumnal Equinox";
+            else if (deg >= 225 && deg < 315) msg = "❄️ Winter in Northern Hemisphere";
+            if (earth) earth.setAttribute("title", msg + " | Axis tilt always 23.5°");
+        }
+
+        function startDrag(e) {
+            dragging = true;
+            e.preventDefault();
+            earth.style.cursor = 'grabbing';
+        }
+
+        function stopDrag() {
+            dragging = false;
+            earth.style.cursor = 'grab';
+        }
+
+        if (earth) {
+            earth.addEventListener('mousedown', startDrag);
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('mouseup', stopDrag);
+            earth.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                dragging = true;
+                const touch = e.touches[0];
+                const rect = container.getBoundingClientRect();
+                let mouseX = touch.clientX - rect.left;
+                let mouseY = touch.clientY - rect.top;
+                let dx = mouseX - centerX;
+                let dy = mouseY - centerY;
+                let angle = Math.atan2(dy, dx);
+                let newLeft = centerX + radius * Math.cos(angle);
+                let newTop = centerY + radius * Math.sin(angle);
+                earth.style.left = newLeft + 'px';
+                earth.style.top = newTop + 'px';
+            });
+            window.addEventListener('touchmove', (e) => {
+                if (!dragging) return;
+                e.preventDefault();
+                const touch = e.touches[0];
+                if (!touch) return;
+                const rect = container.getBoundingClientRect();
+                let mouseX = touch.clientX - rect.left;
+                let mouseY = touch.clientY - rect.top;
+                let dx = mouseX - centerX;
+                let dy = mouseY - centerY;
+                let angle = Math.atan2(dy, dx);
+                let newLeft = centerX + radius * Math.cos(angle);
+                let newTop = centerY + radius * Math.sin(angle);
+                earth.style.left = newLeft + 'px';
+                earth.style.top = newTop + 'px';
+                updateSeasonHint(angle);
+            });
+            window.addEventListener('touchend', () => {
+                dragging = false;
+            });
+        }
+
+        function init() {
+            updateGeometry();
+            const initAngle = -Math.PI / 2;
+            let initX = centerX + radius * Math.cos(initAngle);
+            let initY = centerY + radius * Math.sin(initAngle);
+            earth.style.left = initX + 'px';
+            earth.style.top = initY + 'px';
+            earth.style.cursor = 'grab';
+            updateSeasonHint(initAngle);
+        }
+        window.addEventListener('load', () => {
+            init();
+            setTimeout(updateGeometry, 120);
+        });
+    })();
+</script>
+</body>
+</html>
